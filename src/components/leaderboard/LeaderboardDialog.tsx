@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -33,14 +34,28 @@ export function LeaderboardDialog({ trigger }: LeaderboardDialogProps) {
             const q = query(
               collection(firestore, 'leaderboard'),
               orderBy('score', 'desc'),
-              limit(10)
+              limit(50) // Fetch more to account for duplicates
             );
             const querySnapshot = await getDocs(q);
             const data: LeaderboardEntry[] = [];
             querySnapshot.forEach(doc => {
               data.push({ id: doc.id, ...doc.data() } as LeaderboardEntry);
             });
-            setLeaderboard(data);
+
+            // Filter for unique players with highest score
+            const uniquePlayers = new Map<string, LeaderboardEntry>();
+            for (const entry of data) {
+              const existing = uniquePlayers.get(entry.playerName);
+              if (!existing || entry.score > existing.score) {
+                uniquePlayers.set(entry.playerName, entry);
+              }
+            }
+            
+            const uniqueEntries = Array.from(uniquePlayers.values());
+            uniqueEntries.sort((a, b) => b.score - a.score);
+            
+            setLeaderboard(uniqueEntries.slice(0, 10));
+
           } catch (error) {
               console.error("Error fetching leaderboard: ", error);
           } finally {
