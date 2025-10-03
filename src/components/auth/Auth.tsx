@@ -10,10 +10,12 @@ import { startAudioContext } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoginForm } from './LoginForm';
 import { SignUpForm } from './SignUpForm';
+import { useRouter } from 'next/navigation';
 
 export function Auth() {
   const { playAsGuest, loading: authLoading } = useAuth();
   const [loadingGuest, setLoadingGuest] = useState(false);
+  const router = useRouter();
 
   const handleGuestPlay = () => {
     setLoadingGuest(true);
@@ -24,7 +26,7 @@ export function Auth() {
   return (
     <Card className="w-full max-w-sm shadow-lg border-primary/50">
       <CardHeader className="text-center">
-        <CardTitle className="font-headline text-3xl text-primary">Welcome to NāgaPatha</CardTitle>
+        <CardTitle className="font-headline text-3xl text-primary">Welcome Back!</CardTitle>
         <CardDescription className="pt-2">Sign in to save your high scores or play as a guest.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
