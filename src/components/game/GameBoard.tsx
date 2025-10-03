@@ -21,19 +21,19 @@ interface GameBoardProps {
   onRestart: () => void;
 }
 
-export function GameBoard({ onRestart }: GameBoardProps) {
-  const generateFood = useCallback((currentSnake: Coordinates[]): Coordinates => {
-    while (true) {
-      const newFood = {
-        x: Math.floor(Math.random() * GRID_SIZE),
-        y: Math.floor(Math.random() * GRID_SIZE),
-      };
-      if (!currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y)) {
-        return newFood;
-      }
+const generateFood = (currentSnake: Coordinates[]): Coordinates => {
+  while (true) {
+    const newFood = {
+      x: Math.floor(Math.random() * GRID_SIZE),
+      y: Math.floor(Math.random() * GRID_SIZE),
+    };
+    if (!currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y)) {
+      return newFood;
     }
-  }, []);
+  }
+};
 
+export function GameBoard({ onRestart }: GameBoardProps) {
   const [snake, setSnake] = useState<Coordinates[]>(INITIAL_SNAKE_POSITION);
   const [food, setFood] = useState<Coordinates>(() => generateFood(INITIAL_SNAKE_POSITION));
   const [direction, setDirection] = useState<Direction>(INITIAL_DIRECTION);
@@ -87,7 +87,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     setIsPowerUpActive(false);
     if(powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
     onRestart();
-  }, [onRestart, generateFood]);
+  }, [onRestart]);
 
   const endGame = useCallback(() => {
     if (isGameRunning) {
@@ -210,6 +210,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         style={{
           width: 'min(90vw, 90vh, 600px)',
           height: 'min(90vw, 90vh, 600px)',
+          touchAction: 'none',
         }}
         tabIndex={0}
         {...swipeHandlers}
@@ -276,5 +277,3 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     </div>
   );
 }
-
-    
