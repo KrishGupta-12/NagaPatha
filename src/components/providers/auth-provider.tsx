@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useFirebase } from '@/firebase';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut, GoogleAuthProvider } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut, GoogleAuthProvider, signInAnonymously } from 'firebase/auth';
 import React, { createContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
@@ -29,8 +30,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
     };
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      if (user) {
+      if (user && !user.isAnonymous) {
+        setUser(user);
+        setIsGuest(false);
+      } else if (user && user.isAnonymous) {
+        setUser(user);
+        setIsGuest(true);
+      } else {
+        setUser(null);
         setIsGuest(false);
       }
       setLoading(false);
@@ -45,13 +52,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const googleProvider = new GoogleAuthProvider();
       await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged will handle the user state update and setLoading(false)
     } catch (error: any) {
       if (error.code !== 'auth/popup-closed-by-user') {
         console.error("Error signing in with Google: ", error);
       }
-      // If an error occurs (including popup closed), we should stop loading
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,19 +65,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth) return;
     try {
       await firebaseSignOut(auth);
+      setUser(null);
       setIsGuest(false);
     } catch (error) {
       console.error("Error signing out: ", error);
     }
   };
 
-  const playAsGuest = () => {
-    setIsGuest(true);
-    setUser(null);
+  const playAsGuest = async () => {
+    if (!auth) return;
+    setLoading(true);
+    try {
+        const userCredential = await signInAnonymously(auth);
+        setUser(userCredential.user);
+        setIsGuest(true);
+    } catch (error) {
+        console.error("Error signing in as guest:", error);
+    } finally {
+        setLoading(false);
+    }
   };
   
-  const endGuestSession = () => {
+  const endGuestSession = async () => {
+    if (user && user.isAnonymous) {
+      await signOut();
+    }
     setIsGuest(false);
+    setUser(null);
   };
 
   const value = {

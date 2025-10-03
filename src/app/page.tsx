@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -12,9 +13,9 @@ export default function Home() {
   const showGame = user || isGuest;
 
   return (
-    <div className="flex flex-col min-h-screen bg-card/50">
+    <div className="flex flex-col h-[100svh] bg-card/50">
       <Header />
-      <main className="flex-grow flex items-center justify-center p-4">
+      <main className="flex-grow flex items-center justify-center p-4 overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center gap-4">
             <Gamepad2 className="w-16 h-16 animate-pulse text-primary" />

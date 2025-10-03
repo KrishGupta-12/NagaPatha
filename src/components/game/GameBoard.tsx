@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -28,6 +29,10 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [powerUp, setPowerUp] = useState<Coordinates | null>(null);
+  const [isPowerUpActive, setIsPowerUpActive] = useState(false);
+  const powerUpTimerRef = useRef<NodeJS.Timeout | null>(null);
+
 
   const { difficulty, highScore, setHighScore, incrementGamesPlayed, addSessionDuration, playGameSound } = useGame();
   const { user } = useAuth();
@@ -59,7 +64,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     incrementGamesPlayed();
   };
 
-  function generateFood(currentSnake: Coordinates[]): Coordinates {
+  const generateFood = useCallback((currentSnake: Coordinates[]): Coordinates => {
     while (true) {
       const newFood = {
         x: Math.floor(Math.random() * GRID_SIZE),
@@ -69,7 +74,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         return newFood;
       }
     }
-  }
+  },[]);
 
   const resetGame = useCallback(() => {
     setSnake(INITIAL_SNAKE_POSITION);
@@ -79,8 +84,11 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     setIsGameRunning(false);
     setIsGameOver(false);
     setStartTime(null);
+    setPowerUp(null);
+    setIsPowerUpActive(false);
+    if(powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
     onRestart();
-  }, [onRestart]);
+  }, [onRestart, generateFood]);
 
   const endGame = useCallback(() => {
     if (isGameRunning) {
@@ -90,6 +98,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
       setIsGameRunning(false);
       setIsGameOver(true);
       playGameSound('crash');
+      if (powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
     }
   }, [isGameRunning, startTime, addSessionDuration, playGameSound]);
 
@@ -97,14 +106,21 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     if (!isGameRunning) return;
 
     setSnake(prevSnake => {
-      const newSnake = [...prevSnake];
-      const head = { ...newSnake[0] };
+      let newSnake = [...prevSnake];
+      let head = { ...newSnake[0] };
 
       switch (direction) {
         case 'UP': head.y -= 1; break;
         case 'DOWN': head.y += 1; break;
         case 'LEFT': head.x -= 1; break;
         case 'RIGHT': head.x += 1; break;
+      }
+      
+      if (isPowerUpActive) {
+        if (head.x < 0) head.x = GRID_SIZE - 1;
+        if (head.x >= GRID_SIZE) head.x = 0;
+        if (head.y < 0) head.y = GRID_SIZE - 1;
+        if (head.y >= GRID_SIZE) head.y = 0;
       }
 
       newSnake.unshift(head);
@@ -116,7 +132,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
       }
       return newSnake;
     });
-  }, [isGameRunning, direction, food.x, food.y]);
+  }, [isGameRunning, direction, food.x, food.y, isPowerUpActive]);
 
   useInterval(moveSnake, isGameRunning ? DIFFICULTY_LEVELS[difficulty] : null);
 
@@ -128,24 +144,36 @@ export function GameBoard({ onRestart }: GameBoardProps) {
       setHighScore(newScore);
       setFood(generateFood(snake));
       playGameSound('eat');
+      
+      if (newScore % 5 === 0 && !powerUp) {
+        setPowerUp(generateFood([...snake, food]));
+      }
     }
-  }, [snake, food, score, setHighScore, playGameSound]);
+    
+    if (powerUp && head.x === powerUp.x && head.y === powerUp.y) {
+        setPowerUp(null);
+        setIsPowerUpActive(true);
+        playGameSound('eat');
+        if (powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
+        powerUpTimerRef.current = setTimeout(() => {
+            setIsPowerUpActive(false);
+        }, 5000);
+    }
+    
+  }, [snake, food, score, setHighScore, playGameSound, generateFood, powerUp, setPowerUp]);
 
   useEffect(() => {
-    if (!isGameRunning) return;
+    if (!isGameRunning || isPowerUpActive) return;
 
     const head = snake[0];
 
-    // Wall collision
     const isWallCollision = head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE;
-
-    // Self collision
     const isSelfCollision = snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y);
 
     if (isWallCollision || isSelfCollision) {
       endGame();
     }
-  }, [snake, isGameRunning, endGame]);
+  }, [snake, isGameRunning, endGame, isPowerUpActive]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -170,7 +198,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
 
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-4 w-full">
       <div className="flex justify-between w-full max-w-md lg:max-w-lg px-2 text-lg font-headline">
         <p>Score: <span className="text-accent font-mono">{score}</span></p>
         <p>Difficulty: <span className="text-accent">{difficultyName}</span></p>
@@ -181,8 +209,8 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         ref={gameBoardRef}
         className="relative bg-card rounded-md border-2 border-primary shadow-lg overflow-hidden"
         style={{
-          width: 'min(90vw, 600px)',
-          height: 'min(90vw, 600px)',
+          width: 'min(90vw, 90vh, 600px)',
+          height: 'min(90vw, 90vh, 600px)',
         }}
         tabIndex={0}
         {...swipeHandlers}
@@ -195,6 +223,8 @@ export function GameBoard({ onRestart }: GameBoardProps) {
             gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
             width: '100%',
             height: '100%',
+            backgroundColor: isPowerUpActive ? 'hsl(var(--primary)/0.1)' : 'transparent',
+            transition: 'background-color 0.5s ease'
           }}
         >
           {snake.map((segment, index) => (
@@ -204,7 +234,8 @@ export function GameBoard({ onRestart }: GameBoardProps) {
               style={{
                 gridColumnStart: segment.x + 1,
                 gridRowStart: segment.y + 1,
-                boxShadow: index === 0 ? '0 0 8px hsl(var(--primary))' : 'none',
+                boxShadow: index === 0 ? `0 0 8px hsl(var(--primary)), ${isPowerUpActive ? '0 0 12px hsl(var(--accent))' : ''}` : 'none',
+                transition: 'box-shadow 0.3s ease'
               }}
               aria-label={`Snake segment at ${segment.x}, ${segment.y}`}
             />
@@ -217,6 +248,17 @@ export function GameBoard({ onRestart }: GameBoardProps) {
             }}
              aria-label={`Food at ${food.x}, ${food.y}`}
           />
+          {powerUp && (
+             <div
+                className="bg-yellow-400 rounded-full animate-ping"
+                style={{
+                gridColumnStart: powerUp.x + 1,
+                gridRowStart: powerUp.y + 1,
+                boxShadow: '0 0 10px yellow'
+                }}
+                aria-label={`Power-up at ${powerUp.x}, ${powerUp.y}`}
+            />
+          )}
         </div>
         
         {!isGameRunning && !isGameOver && (
@@ -231,6 +273,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         
         {isGameOver && <GameOverScreen score={score} onPlayAgain={resetGame} />}
       </div>
+      {isPowerUpActive && <p className="text-accent font-headline text-lg animate-pulse">Power-up Active! Pass through walls!</p>}
     </div>
   );
 }
