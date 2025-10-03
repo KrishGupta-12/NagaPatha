@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { LeaderboardDialog } from '@/components/leaderboard/LeaderboardDialog';
@@ -20,27 +20,33 @@ export function GameOverScreen({ score, onPlayAgain }: GameOverScreenProps) {
   const { user } = useAuth();
   const firestore = useFirestore();
   const [isSaving, setIsSaving] = useState(false);
+  const scoreSubmittedRef = useRef(false);
 
   useEffect(() => {
     async function handlePostGame() {
-      if (user && firestore && score > 0) {
+      if (user && firestore && score > 0 && !scoreSubmittedRef.current) {
+        scoreSubmittedRef.current = true; // Mark as submitted immediately
         setIsSaving(true);
+        
         const leaderboardRef = collection(firestore, 'leaderboard');
         const leaderboardData = {
           playerName: user.displayName || 'Anonymous',
           score,
           createdAt: new Date(),
         };
-        addDoc(leaderboardRef, leaderboardData).catch(async (serverError) => {
+
+        try {
+          await addDoc(leaderboardRef, leaderboardData);
+        } catch (serverError) {
           const permissionError = new FirestorePermissionError({
             path: leaderboardRef.path,
             operation: 'create',
             requestResourceData: leaderboardData,
           });
           errorEmitter.emit('permission-error', permissionError);
-        }).finally(() => {
-            setIsSaving(false);
-        });
+        } finally {
+          setIsSaving(false);
+        }
       }
     }
 

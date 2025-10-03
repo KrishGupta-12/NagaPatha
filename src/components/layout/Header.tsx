@@ -11,8 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Gamepad2, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
+import { Gamepad2, LogOut, User as UserIcon, Loader2, Trophy } from 'lucide-react';
 import { SettingsDialog } from '../settings/SettingsDialog';
+import { LeaderboardDialog } from '../leaderboard/LeaderboardDialog';
 
 export function Header() {
   const { user, isGuest, loading, signOut, endGuestSession } = useAuth();
@@ -67,6 +68,13 @@ export function Header() {
                   )}
                 </div>
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+               <LeaderboardDialog trigger={
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  <span>Leaderboard</span>
+                </DropdownMenuItem>
+              }/>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
