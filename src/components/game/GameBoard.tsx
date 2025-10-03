@@ -22,6 +22,18 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ onRestart }: GameBoardProps) {
+  const generateFood = useCallback((currentSnake: Coordinates[]): Coordinates => {
+    while (true) {
+      const newFood = {
+        x: Math.floor(Math.random() * GRID_SIZE),
+        y: Math.floor(Math.random() * GRID_SIZE),
+      };
+      if (!currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y)) {
+        return newFood;
+      }
+    }
+  }, []);
+
   const [snake, setSnake] = useState<Coordinates[]>(INITIAL_SNAKE_POSITION);
   const [food, setFood] = useState<Coordinates>(() => generateFood(INITIAL_SNAKE_POSITION));
   const [direction, setDirection] = useState<Direction>(INITIAL_DIRECTION);
@@ -32,7 +44,6 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   const [powerUp, setPowerUp] = useState<Coordinates | null>(null);
   const [isPowerUpActive, setIsPowerUpActive] = useState(false);
   const powerUpTimerRef = useRef<NodeJS.Timeout | null>(null);
-
 
   const { difficulty, highScore, setHighScore, incrementGamesPlayed, addSessionDuration, playGameSound } = useGame();
   const { user } = useAuth();
@@ -63,18 +74,6 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     gameBoardRef.current?.focus();
     incrementGamesPlayed();
   };
-
-  const generateFood = useCallback((currentSnake: Coordinates[]): Coordinates => {
-    while (true) {
-      const newFood = {
-        x: Math.floor(Math.random() * GRID_SIZE),
-        y: Math.floor(Math.random() * GRID_SIZE),
-      };
-      if (!currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y)) {
-        return newFood;
-      }
-    }
-  },[]);
 
   const resetGame = useCallback(() => {
     setSnake(INITIAL_SNAKE_POSITION);
@@ -277,3 +276,5 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     </div>
   );
 }
+
+    
