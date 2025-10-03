@@ -14,6 +14,7 @@ import {
 } from '@/lib/constants';
 import { startAudioContext } from '@/lib/utils';
 import { GameOverScreen } from './GameOverScreen';
+import { Button } from '@/components/ui/button';
 
 interface GameBoardProps {
   onRestart: () => void;
