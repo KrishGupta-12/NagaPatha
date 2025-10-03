@@ -108,20 +108,28 @@ export function GameBoard({ onRestart }: GameBoardProps) {
       }
 
       newSnake.unshift(head);
+      
+      const ateFood = head.x === food.x && head.y === food.y;
 
-      if (head.x === food.x && head.y === food.y) {
-        setScore(s => s + 1);
-        setHighScore(score + 1);
-        setFood(generateFood(newSnake));
-        playGameSound('eat');
-      } else {
+      if (!ateFood) {
         newSnake.pop();
       }
       return newSnake;
     });
-  }, [isGameRunning, direction, food, score, setHighScore, playGameSound]);
+  }, [isGameRunning, direction, food.x, food.y]);
 
   useInterval(moveSnake, isGameRunning ? DIFFICULTY_LEVELS[difficulty] : null);
+
+  useEffect(() => {
+    const head = snake[0];
+    if (head.x === food.x && head.y === food.y) {
+      const newScore = score + 1;
+      setScore(newScore);
+      setHighScore(newScore);
+      setFood(generateFood(snake));
+      playGameSound('eat');
+    }
+  }, [snake, food, score, setHighScore, playGameSound]);
 
   useEffect(() => {
     if (!isGameRunning) return;
