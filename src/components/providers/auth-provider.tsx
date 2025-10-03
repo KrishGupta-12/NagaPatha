@@ -3,14 +3,20 @@
 
 import { useFirebase } from '@/firebase';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut, GoogleAuthProvider, signInAnonymously } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import React, { createContext, useEffect, useState } from 'react';
+import { setDoc, doc } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import type { SignUpData, SignInData } from '@/lib/types';
+
 
 interface AuthContextType {
   user: User | null;
   isGuest: boolean;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signUpWithEmail: (data: SignUpData) => Promise<void>;
+  signInWithEmail: (data: SignInData) => Promise<void>;
   signOut: () => Promise<void>;
   playAsGuest: () => void;
   endGuestSession: () => void;
@@ -19,7 +25,7 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { auth } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,19 +52,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [auth]);
 
-  const signInWithGoogle = async () => {
-    if (!auth) return;
+  const signUpWithEmail = async ({ name, email, password }: SignUpData) => {
+    if (!auth || !firestore) throw new Error("Firebase not initialized");
     setLoading(true);
     try {
-      const googleProvider = new GoogleAuthProvider();
-      await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
-      // Don't log an error if the user closes the popup
-      if (error.code !== 'auth/popup-closed-by-user') {
-        console.error("Error signing in with Google: ", error);
-      }
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+      await updateProfile(newUser, { displayName: name });
+      
+      const userRef = doc(firestore, 'users', newUser.uid);
+      const userData = {
+        id: newUser.uid,
+        username: name,
+        email: newUser.email,
+        authProvider: 'password'
+      };
+
+      setDoc(userRef, userData).catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'create',
+            requestResourceData: userData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
+
+      setUser(newUser);
     } finally {
-      // Ensure loading is always set to false, even if sign-in is cancelled
+      setLoading(false);
+    }
+  };
+
+  const signInWithEmail = async ({ email, password }: SignInData) => {
+    if (!auth) throw new Error("Firebase not initialized");
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } finally {
       setLoading(false);
     }
   };
@@ -100,7 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isGuest,
     loading,
-    signInWithGoogle,
+    signUpWithEmail,
+    signInWithEmail,
     signOut,
     playAsGuest,
     endGuestSession,
