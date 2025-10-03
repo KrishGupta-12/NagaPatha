@@ -83,13 +83,15 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   }, [onRestart]);
 
   const endGame = useCallback(() => {
-    if (startTime) {
-        addSessionDuration((Date.now() - startTime) / 1000);
+    if (isGameRunning) {
+      if (startTime) {
+          addSessionDuration((Date.now() - startTime) / 1000);
+      }
+      setIsGameRunning(false);
+      setIsGameOver(true);
+      playGameSound('crash');
     }
-    setIsGameRunning(false);
-    setIsGameOver(true);
-    playGameSound('crash');
-  }, [startTime, addSessionDuration, playGameSound]);
+  }, [isGameRunning, startTime, addSessionDuration, playGameSound]);
 
   const moveSnake = useCallback(() => {
     if (!isGameRunning) return;
@@ -105,23 +107,8 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         case 'RIGHT': head.x += 1; break;
       }
 
-      // Wall collision
-      if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
-        endGame();
-        return prevSnake;
-      }
-
-      // Self collision
-      for (let i = 1; i < newSnake.length; i++) {
-        if (head.x === newSnake[i].x && head.y === newSnake[i].y) {
-          endGame();
-          return prevSnake;
-        }
-      }
-
       newSnake.unshift(head);
 
-      // Food consumption
       if (head.x === food.x && head.y === food.y) {
         setScore(s => s + 1);
         setHighScore(score + 1);
@@ -132,9 +119,25 @@ export function GameBoard({ onRestart }: GameBoardProps) {
       }
       return newSnake;
     });
-  }, [isGameRunning, direction, food, score, setHighScore, playGameSound, endGame]);
+  }, [isGameRunning, direction, food, score, setHighScore, playGameSound]);
 
   useInterval(moveSnake, isGameRunning ? DIFFICULTY_LEVELS[difficulty] : null);
+
+  useEffect(() => {
+    if (!isGameRunning) return;
+
+    const head = snake[0];
+
+    // Wall collision
+    const isWallCollision = head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE;
+
+    // Self collision
+    const isSelfCollision = snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y);
+
+    if (isWallCollision || isSelfCollision) {
+      endGame();
+    }
+  }, [snake, isGameRunning, endGame]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
