@@ -10,28 +10,46 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getLeaderboard } from '@/app/actions';
 import type { LeaderboardEntry } from '@/lib/types';
 import { Award, Loader2 } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 
 interface LeaderboardDialogProps {
     trigger: React.ReactNode;
 }
 
 export function LeaderboardDialog({ trigger }: LeaderboardDialogProps) {
+  const firestore = useFirestore();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      setLoading(true);
-      getLeaderboard().then(data => {
-        setLeaderboard(data);
-        setLoading(false);
-      });
+    async function fetchLeaderboard() {
+        if (isOpen && firestore) {
+          setLoading(true);
+          try {
+            const q = query(
+              collection(firestore, 'leaderboard'),
+              orderBy('score', 'desc'),
+              limit(10)
+            );
+            const querySnapshot = await getDocs(q);
+            const data: LeaderboardEntry[] = [];
+            querySnapshot.forEach(doc => {
+              data.push({ id: doc.id, ...doc.data() } as LeaderboardEntry);
+            });
+            setLeaderboard(data);
+          } catch (error) {
+              console.error("Error fetching leaderboard: ", error);
+          } finally {
+            setLoading(false);
+          }
+        }
     }
-  }, [isOpen]);
+    fetchLeaderboard();
+  }, [isOpen, firestore]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -54,7 +72,7 @@ export function LeaderboardDialog({ trigger }: LeaderboardDialogProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">Rank</TableHead>
+                  <TableHead className="w-[50px] text-center">Rank</TableHead>
                   <TableHead>Player</TableHead>
                   <TableHead className="text-right">Score</TableHead>
                 </TableRow>
@@ -62,7 +80,7 @@ export function LeaderboardDialog({ trigger }: LeaderboardDialogProps) {
               <TableBody>
                 {leaderboard.map((entry, index) => (
                   <TableRow key={entry.id}>
-                    <TableCell className="font-medium text-center">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-center">{getRank(index)}</TableCell>
                     <TableCell>{entry.playerName}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-accent">{entry.score}</TableCell>
                   </TableRow>
@@ -77,4 +95,12 @@ export function LeaderboardDialog({ trigger }: LeaderboardDialogProps) {
       </DialogContent>
     </Dialog>
   );
+}
+
+
+function getRank(index: number) {
+    if (index === 0) return '🥇';
+    if (index === 1) return '🥈';
+    if (index === 2) return '🥉';
+    return index + 1;
 }

@@ -12,7 +12,7 @@ export default function Home() {
   const showGame = user || isGuest;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-card/50">
       <Header />
       <main className="flex-grow flex items-center justify-center p-4">
         {loading ? (

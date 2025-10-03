@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Gamepad2, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
+import { SettingsDialog } from '../settings/SettingsDialog';
 
 export function Header() {
   const { user, isGuest, loading, signOut, endGuestSession } = useAuth();
@@ -30,14 +31,15 @@ export function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between p-4 border-b border-primary/20">
+    <header className="flex items-center justify-between p-4 border-b border-primary/20 bg-background">
       <div className="flex items-center gap-2">
         <Gamepad2 className="w-8 h-8 text-primary" />
         <h1 className="text-2xl font-bold font-headline text-primary">
           RetroSnake
         </h1>
       </div>
-      <div>
+      <div className="flex items-center gap-2">
+        {(user || isGuest) && <SettingsDialog />}
         {loading ? (
           <Loader2 className="w-6 h-6 animate-spin" />
         ) : (user || isGuest) ? (
@@ -66,7 +68,7 @@ export function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
+              <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>{user ? 'Log out' : 'End Guest Session'}</span>
               </DropdownMenuItem>

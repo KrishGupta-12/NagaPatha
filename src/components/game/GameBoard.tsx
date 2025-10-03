@@ -12,7 +12,7 @@ import {
   INITIAL_SNAKE_POSITION,
   INITIAL_DIRECTION,
 } from '@/lib/constants';
-import { playEatSound, playCrashSound, startAudioContext } from '@/lib/utils';
+import { startAudioContext } from '@/lib/utils';
 import { GameOverScreen } from './GameOverScreen';
 
 interface GameBoardProps {
@@ -28,7 +28,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   const [isGameOver, setIsGameOver] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
 
-  const { difficulty, highScore, setHighScore, incrementGamesPlayed, addSessionDuration } = useGame();
+  const { difficulty, highScore, setHighScore, incrementGamesPlayed, addSessionDuration, playGameSound } = useGame();
   const { user } = useAuth();
   
   const gameBoardRef = useRef<HTMLDivElement>(null);
@@ -81,6 +81,15 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     onRestart();
   }, [onRestart]);
 
+  const endGame = useCallback(() => {
+    if (startTime) {
+        addSessionDuration((Date.now() - startTime) / 1000);
+    }
+    setIsGameRunning(false);
+    setIsGameOver(true);
+    playGameSound('crash');
+  }, [startTime, addSessionDuration, playGameSound]);
+
   const moveSnake = useCallback(() => {
     if (!isGameRunning) return;
 
@@ -116,22 +125,13 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         setScore(s => s + 1);
         setHighScore(score + 1);
         setFood(generateFood(newSnake));
-        playEatSound();
+        playGameSound('eat');
       } else {
         newSnake.pop();
       }
       return newSnake;
     });
-  }, [isGameRunning, direction, food, score, setHighScore]);
-
-  const endGame = () => {
-    if (startTime) {
-        addSessionDuration((Date.now() - startTime) / 1000);
-    }
-    setIsGameRunning(false);
-    setIsGameOver(true);
-    playCrashSound();
-  };
+  }, [isGameRunning, direction, food, score, setHighScore, playGameSound, endGame]);
 
   useInterval(moveSnake, isGameRunning ? DIFFICULTY_LEVELS[difficulty] : null);
 

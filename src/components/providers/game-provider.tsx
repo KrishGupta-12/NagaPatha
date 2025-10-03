@@ -1,7 +1,9 @@
 'use client';
 
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { playSound } from '@/lib/utils';
 
 interface GameContextType {
   difficulty: number;
@@ -14,20 +16,29 @@ interface GameContextType {
   addSessionDuration: (duration: number) => void;
   averageSessionLength: number;
   resetGameStats: () => void;
+  isMobile: boolean;
+  soundEnabled: boolean;
+  setSoundEnabled: (enabled: boolean) => void;
+  playGameSound: (sound: 'eat' | 'crash' | 'click') => void;
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const isMobile = useIsMobile();
+  
   const [difficulty, setDifficulty] = useState(1); // 1: easy, 2: medium, 3: hard
   const [highScore, setHighScore] = useState(0);
   const [gamesPlayed, setGamesPlayed] = useState(0);
   const [sessionDurations, setSessionDurations] = useState<number[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const userPrefix = user?.uid || 'guest';
+  const userPrefix = user?.uid || (isGuest ? 'guest' : '');
 
   useEffect(() => {
+    if (!userPrefix) return;
+
     const savedState = localStorage.getItem(`retrosnake_gamestate_${userPrefix}`);
     if (savedState) {
       const {
@@ -35,27 +46,37 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         highScore: savedHighScore,
         gamesPlayed: savedGamesPlayed,
         sessionDurations: savedSessionDurations,
+        soundEnabled: savedSoundEnabled,
       } = JSON.parse(savedState);
       
       setDifficulty(savedDifficulty || 1);
       setHighScore(savedHighScore || 0);
       setGamesPlayed(savedGamesPlayed || 0);
       setSessionDurations(savedSessionDurations || []);
+      setSoundEnabled(savedSoundEnabled === undefined ? true : savedSoundEnabled);
     } else {
         resetGameStats();
     }
   }, [userPrefix]);
   
   useEffect(() => {
+    if (!userPrefix) return;
+    
     const gameState = {
         difficulty,
         highScore,
         gamesPlayed,
-        sessionDurations
+        sessionDurations,
+        soundEnabled,
     };
     localStorage.setItem(`retrosnake_gamestate_${userPrefix}`, JSON.stringify(gameState));
-  }, [difficulty, highScore, gamesPlayed, sessionDurations, userPrefix]);
+  }, [difficulty, highScore, gamesPlayed, sessionDurations, soundEnabled, userPrefix]);
   
+  const playGameSound = useCallback((sound: 'eat' | 'crash' | 'click') => {
+    if (soundEnabled) {
+      playSound(sound);
+    }
+  }, [soundEnabled]);
 
   const handleSetDifficulty = (level: number) => {
     setDifficulty(Math.max(1, Math.min(3, level)));
@@ -70,7 +91,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const incrementGamesPlayed = () => setGamesPlayed(prev => prev + 1);
 
   const addSessionDuration = (duration: number) => {
-    setSessionDurations(prev => [...prev, duration]);
+    setSessionDurations(prev => [...prev.slice(-99), duration]); // Keep last 100
   };
   
   const averageSessionLength = sessionDurations.length > 0
@@ -94,7 +115,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     sessionDurations,
     addSessionDuration,
     averageSessionLength,
-    resetGameStats
+    resetGameStats,
+    isMobile,
+    soundEnabled,
+    setSoundEnabled,
+    playGameSound,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

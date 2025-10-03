@@ -6,31 +6,42 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-let eatSound: Tone.Synth;
-let crashSound: Tone.Synth;
+let synths: { [key: string]: Tone.Synth | Tone.NoiseSynth } = {};
 
 if (typeof window !== 'undefined') {
-  eatSound = new Tone.Synth({
+  synths.eat = new Tone.Synth({
     oscillator: { type: 'sine' },
     envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 0.1 }
   }).toDestination();
-
-  crashSound = new Tone.Synth({
-    oscillator: { type: 'fmsquare' },
-    envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 }
+  
+  synths.crash = new Tone.NoiseSynth({
+    noise: { type: 'brown' },
+    envelope: { attack: 0.005, decay: 0.15, sustain: 0 }
+  }).toDestination();
+  
+  synths.click = new Tone.Synth({
+    oscillator: { type: 'sawtooth' },
+    envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.1 }
   }).toDestination();
 }
 
-
-export const playEatSound = () => {
-  if (eatSound && Tone.context.state === 'running') {
-    eatSound.triggerAttackRelease('C5', '8n');
+export const playSound = (sound: 'eat' | 'crash' | 'click') => {
+  if (Tone.context.state !== 'running') {
+    Tone.start();
   }
-}
+  const synth = synths[sound];
+  if (!synth) return;
 
-export const playCrashSound = () => {
-  if (crashSound && Tone.context.state === 'running') {
-    crashSound.triggerAttackRelease('C3', '4n');
+  switch(sound) {
+    case 'eat':
+      (synth as Tone.Synth).triggerAttackRelease('C5', '8n');
+      break;
+    case 'crash':
+       (synth as Tone.NoiseSynth).triggerAttackRelease('0.1');
+      break;
+    case 'click':
+       (synth as Tone.Synth).triggerAttackRelease('C4', '16n');
+       break;
   }
 }
 
