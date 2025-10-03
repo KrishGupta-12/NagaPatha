@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https/g',
         hostname: 'picsum.photos',
         port: '',
         pathname: '/**',
@@ -33,9 +33,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA({
+const pwaConfig = withPWA({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-})(nextConfig);
+});
+
+// When using Turbopack, the PWA plugin which relies on Webpack should be bypassed in dev.
+export default process.env.TURBOPACK ? nextConfig : pwaConfig(nextConfig);
