@@ -9,6 +9,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 export const metadata: Metadata = {
   title: 'NāgaPatha',
   description: 'A classic Snake game with modern polish and Firebase integration.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -25,6 +26,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=VT323&display=swap"
           rel="stylesheet"
         />
+        <meta name="theme-color" content="#3c8f3c" />
       </head>
       <body className={cn('font-body antialiased min-h-screen bg-background text-foreground')}>
         <FirebaseClientProvider>

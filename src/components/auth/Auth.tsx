@@ -20,8 +20,13 @@ export function Auth() {
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true);
     startAudioContext();
-    await signInWithGoogle();
-    // setLoadingGoogle(false) is not needed as the component will unmount
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Sign in failed", error);
+    } finally {
+       setLoadingGoogle(false);
+    }
   };
 
   const handleGuestPlay = () => {
