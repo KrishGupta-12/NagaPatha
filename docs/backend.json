@@ -1,0 +1,214 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the RetroSnake game.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user.",
+          "format": "uuid"
+        },
+        "username": {
+          "type": "string",
+          "description": "The user's chosen username."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "authProvider": {
+          "type": "string",
+          "description": "The authentication provider used by the user (e.g., 'google', 'guest')."
+        }
+      },
+      "required": [
+        "id",
+        "username"
+      ]
+    },
+    "Score": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Score",
+      "type": "object",
+      "description": "Represents a user's score in a game.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the score entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Score)"
+        },
+        "score": {
+          "type": "number",
+          "description": "The user's score in the game."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp when the score was achieved.",
+          "format": "date-time"
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "The difficulty level at which the score was achieved (Easy, Medium, Hard)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "score",
+        "timestamp"
+      ]
+    },
+    "GameSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GameSession",
+      "type": "object",
+      "description": "Represents a single game session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the game session."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N GameSession)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The timestamp when the game session started.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The timestamp when the game session ended.",
+          "format": "date-time"
+        },
+        "duration": {
+          "type": "number",
+          "description": "The duration of the game session in seconds."
+        },
+        "finalScore": {
+          "type": "number",
+          "description": "The final score achieved in the game session."
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "The difficulty level of the game session."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "startTime",
+        "endTime",
+        "duration",
+        "finalScore"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  The 'userId' parameter is the Firebase Authentication UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to their Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/scores/{scoreId}",
+        "definition": {
+          "entityName": "Score",
+          "schema": {
+            "$ref": "#/backend/entities/Score"
+          },
+          "description": "Stores scores for each user.  Path-based ownership ensures only the user can read/write their own scores.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "scoreId",
+              "description": "The unique identifier for the score entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/game_sessions/{gameSessionId}",
+        "definition": {
+          "entityName": "GameSession",
+          "schema": {
+            "$ref": "#/backend/entities/GameSession"
+          },
+          "description": "Stores game session data for each user. Path-based ownership ensures only the user can read/write their own game sessions.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "gameSessionId",
+              "description": "The unique identifier for the game session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/leaderboard/{scoreId}",
+        "definition": {
+          "entityName": "Score",
+          "schema": {
+            "$ref": "#/backend/entities/Score"
+          },
+          "description": "Stores the top scores globally for leaderboard display.",
+          "params": [
+            {
+              "name": "scoreId",
+              "description": "The unique identifier for the score entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "admin_role",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection to store admin roles. Presence of a document indicates admin privileges.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to prioritize security, scalability, and debuggability, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). The structure leverages Structural Segregation by placing user-specific data under user-owned paths and global data in separate collections.  Authorization Independence is achieved through path-based ownership and global role assignment (admin role), eliminating the need for `get()` calls in security rules. The separation of concerns via Structural Segregation enables simple and secure `list` operations (QAPs) by avoiding the need to filter based on user roles within the rules themselves. Data clarity and consistency are enforced by standardized naming conventions and explicit state modeling. Path-based ownership (`/users/{userId}/scores/{scoreId}`) ensures that all score documents can be secured based on the user ID in the path, and a global `leaderboard` collection stores the highest scores achieved by users in the game."
+  }
+}

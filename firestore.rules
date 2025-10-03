@@ -1,0 +1,157 @@
+/**
+ * @fileoverview Firestore Security Rules for RetroSnake Game
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles, scores, and game sessions.
+ * Users can only access their own data. A global leaderboard collection is publicly readable,
+ * but only authorized users (or a backend process) can write to it.
+ * Admin privileges are granted by the presence of a document in the `/roles_admin/{userId}` collection.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile data. 'userId' must match the authenticated user's UID.
+ * - /users/{userId}/scores/{scoreId}: Stores user-specific score data.
+ * - /users/{userId}/game_sessions/{gameSessionId}: Stores user-specific game session data.
+ * - /leaderboard/{scoreId}: Stores top scores globally.  Write access is restricted.
+ * - /roles_admin/{userId}: Presence of a document grants admin privileges to the user.
+ *
+ * Key Security Decisions:
+ * - User data is private and accessible only to the owning user.
+ * - The leaderboard is publicly readable but writable only by authorized users.
+ * - Admin privileges are determined by the existence of a document in the `/roles_admin` collection.
+ * - User listing is disallowed for privacy.
+ *
+ * Denormalization for Authorization:
+ * - User ownership is enforced using path-based rules (e.g., `/users/{userId}/scores/{scoreId}`), avoiding the need for `get()` calls to verify ownership.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Rules for the /users/{userId} collection.
+     * @path /users/{userId}
+     * @allow (create) - User with UID 'user_abc' can create their own profile document with id 'user_abc'.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete their own profile document with id 'user_abc'.
+     * @deny (create) - User with UID 'user_def' cannot create a profile document with id 'user_abc'.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update or delete profile document with id 'user_abc'.
+     * @principle Enforces document ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      // Allow a user to create their own profile if the userId matches their auth.uid.
+      allow create: if isSignedIn() && isOwner(userId);
+      // Allow a user to get their own profile.
+      allow get: if isSignedIn() && isOwner(userId);
+      // Allow a user to update their own profile.
+      allow update: if isSignedIn() && isOwner(userId);
+      // Allow a user to delete their own profile.
+      allow delete: if isSignedIn() && isOwner(userId);
+      // Prevent listing of all users.
+      allow list: if false;
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/scores/{scoreId} collection.
+     * @path /users/{userId}/scores/{scoreId}
+     * @allow (create) - User with UID 'user_abc' can create a score document under /users/user_abc/scores.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete a score document under /users/user_abc/scores.
+     * @deny (create) - User with UID 'user_def' cannot create a score document under /users/user_abc/scores.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete a score document under /users/user_abc/scores.
+     * @principle Restricts access to a user's own score documents based on path ownership.
+     */
+    match /users/{userId}/scores/{scoreId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      // Only allow creating a score if the user is signed in and is the owner.
+      allow create: if isSignedIn() && isOwner(userId);
+      // Only allow getting a score if the user is signed in and is the owner.
+      allow get: if isSignedIn() && isOwner(userId);
+      // Only allow updating a score if the user is signed in and is the owner.
+      allow update: if isSignedIn() && isOwner(userId);
+      // Only allow deleting a score if the user is signed in and is the owner.
+      allow delete: if isSignedIn() && isOwner(userId);
+      // Allow the owner to list their scores.
+      allow list: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/game_sessions/{gameSessionId} collection.
+     * @path /users/{userId}/game_sessions/{gameSessionId}
+     * @allow (create) - User with UID 'user_abc' can create a game session document under /users/user_abc/game_sessions.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete a game session document under /users/user_abc/game_sessions.
+     * @deny (create) - User with UID 'user_def' cannot create a game session document under /users/user_abc/game_sessions.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete a game session document under /users/user_abc/game_sessions.
+     * @principle Restricts access to a user's own game session documents based on path ownership.
+     */
+    match /users/{userId}/game_sessions/{gameSessionId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      // Only allow creating a game session if the user is signed in and is the owner.
+      allow create: if isSignedIn() && isOwner(userId);
+      // Only allow getting a game session if the user is signed in and is the owner.
+      allow get: if isSignedIn() && isOwner(userId);
+      // Only allow updating a game session if the user is signed in and is the owner.
+      allow update: if isSignedIn() && isOwner(userId);
+      // Only allow deleting a game session if the user is signed in and is the owner.
+      allow delete: if isSignedIn() && isOwner(userId);
+      // Allow the owner to list their game sessions.
+      allow list: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /leaderboard/{scoreId} collection.
+     * @path /leaderboard/{scoreId}
+     * @allow (get, list) - Any user can read the leaderboard.
+     * @deny (create, update, delete) - Only admins can write to the leaderboard.  TODO: Implement admin check
+     * @principle Allows public read access to leaderboard data, but restricts write access.
+     */
+    match /leaderboard/{scoreId} {
+      // Allow anyone to read the leaderboard.
+      allow get, list: if true;
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Only allow admins to create, update, or delete leaderboard entries.
+      allow create, update, delete: if isSignedIn() && isAdmin();
+    }
+
+    /**
+     * @description Rules for the /roles_admin/{userId} collection.
+     * @path /roles_admin/{userId}
+     * @allow (create) - Only can be created by backend
+     * @allow (get, update, delete) - Only can be managed by backend.
+     * @deny (list) - Listing is not allowed.
+     */
+     match /roles_admin/{userId} {
+        function isSignedIn() {
+          return request.auth != null;
+        }
+        function isAdmin() {
+          return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+        }
+        // Only allow create if the request is authenticated as an admin.
+        allow create: if isSignedIn() && isAdmin() && request.auth.uid == userId;
+        // Only allow read, update, and delete if the request is authenticated as an admin.
+        allow get, update, delete: if isSignedIn() && isAdmin() && request.auth.uid == userId;
+        // Prevent listing of admin roles.
+        allow list: if false;
+      }
+  }
+}
