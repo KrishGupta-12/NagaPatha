@@ -41,14 +41,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     if (!auth) return;
+    setLoading(true);
     try {
-      setLoading(true);
       const googleProvider = new GoogleAuthProvider();
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Error signing in with Google: ", error);
-    } finally {
-      // Auth state change is handled by onAuthStateChanged
+      // onAuthStateChanged will handle the user state update and setLoading(false)
+    } catch (error: any) {
+      if (error.code !== 'auth/popup-closed-by-user') {
+        console.error("Error signing in with Google: ", error);
+      }
+      // If an error occurs (including popup closed), we should stop loading
+      setLoading(false); 
     }
   };
 
