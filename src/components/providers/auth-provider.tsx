@@ -53,10 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const googleProvider = new GoogleAuthProvider();
       await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
+      // Don't log an error if the user closes the popup
       if (error.code !== 'auth/popup-closed-by-user') {
         console.error("Error signing in with Google: ", error);
       }
     } finally {
+      // Ensure loading is always set to false, even if sign-in is cancelled
       setLoading(false);
     }
   };
