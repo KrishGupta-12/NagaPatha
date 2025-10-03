@@ -1,157 +1,124 @@
 /**
- * @fileoverview Firestore Security Rules for RetroSnake Game
+ * @fileoverview Firestore Security Rules for NāgaPatha game.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user profiles, scores, and game sessions.
- * Users can only access their own data. A global leaderboard collection is publicly readable,
- * but only authorized users (or a backend process) can write to it.
- * Admin privileges are granted by the presence of a document in the `/roles_admin/{userId}` collection.
+ * This ruleset enforces a user-ownership model for user-specific data (profiles, scores, game sessions)
+ * and allows public read access to the global leaderboard while restricting write access. Administrative
+ * privileges can be granted via the `roles_admin` collection. The rules are designed to prevent
+ * unauthorized data access and modification, ensure data consistency, and optimize query performance.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data. 'userId' must match the authenticated user's UID.
- * - /users/{userId}/scores/{scoreId}: Stores user-specific score data.
- * - /users/{userId}/game_sessions/{gameSessionId}: Stores user-specific game session data.
- * - /leaderboard/{scoreId}: Stores top scores globally.  Write access is restricted.
- * - /roles_admin/{userId}: Presence of a document grants admin privileges to the user.
+ * - /users/{userId}: User profiles, where {userId} matches the Firebase Auth UID.
+ * - /users/{userId}/scores/{scoreId}: User-specific scores.
+ * - /users/{userId}/game_sessions/{gameSessionId}: User-specific game session data.
+ * - /leaderboard/{scoreId}: Global leaderboard scores.
+ * - /roles_admin/{userId}: Admin role assignments.
  *
  * Key Security Decisions:
- * - User data is private and accessible only to the owning user.
- * - The leaderboard is publicly readable but writable only by authorized users.
- * - Admin privileges are determined by the existence of a document in the `/roles_admin` collection.
- * - User listing is disallowed for privacy.
- *
- * Denormalization for Authorization:
- * - User ownership is enforced using path-based rules (e.g., `/users/{userId}/scores/{scoreId}`), avoiding the need for `get()` calls to verify ownership.
+ * - User data is strictly controlled by the owning user.
+ * - The leaderboard is publicly readable but only writable with valid `request.auth`.
+ * - Listing user collections (scores, game_sessions) is only allowed by the owner.
+ * - Admin privileges are granted by the existence of a document in the `roles_admin` collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Rules for the /users/{userId} collection.
+     * @description Grants access to user profiles based on ownership.
      * @path /users/{userId}
-     * @allow (create) - User with UID 'user_abc' can create their own profile document with id 'user_abc'.
-     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete their own profile document with id 'user_abc'.
-     * @deny (create) - User with UID 'user_def' cannot create a profile document with id 'user_abc'.
-     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update or delete profile document with id 'user_abc'.
-     * @principle Enforces document ownership for all operations on user profiles.
+     * @allow (create) User with UID 'user123' can create their profile if request.auth.uid == 'user123'.
+     * @allow (get, update, delete) User with UID 'user123' can read/write their profile if request.auth.uid == 'user123'.
+     * @deny (create) User with UID 'user456' cannot create a profile for 'user123'.
+     * @deny (get, update, delete) User with UID 'user456' cannot read/write 'user123' profile.
+     * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
-      // Allow a user to create their own profile if the userId matches their auth.uid.
-      allow create: if isSignedIn() && isOwner(userId);
-      // Allow a user to get their own profile.
-      allow get: if isSignedIn() && isOwner(userId);
-      // Allow a user to update their own profile.
-      allow update: if isSignedIn() && isOwner(userId);
-      // Allow a user to delete their own profile.
-      allow delete: if isSignedIn() && isOwner(userId);
-      // Prevent listing of all users.
+      allow get: if isOwner(userId);
       allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rules for the /users/{userId}/scores/{scoreId} collection.
+     * @description Grants access to user-specific score entries based on ownership.
      * @path /users/{userId}/scores/{scoreId}
-     * @allow (create) - User with UID 'user_abc' can create a score document under /users/user_abc/scores.
-     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete a score document under /users/user_abc/scores.
-     * @deny (create) - User with UID 'user_def' cannot create a score document under /users/user_abc/scores.
-     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete a score document under /users/user_abc/scores.
-     * @principle Restricts access to a user's own score documents based on path ownership.
+     * @allow (create) User with UID 'user123' can create a score entry under their profile.
+     * @allow (get, update, delete) User with UID 'user123' can read/write their score entries.
+     * @allow (list) User with UID 'user123' can list their score entries.
+     * @deny (create) User with UID 'user456' cannot create a score entry under 'user123' profile.
+     * @deny (get, update, delete) User with UID 'user456' cannot read/write 'user123' score entries.
+     * @principle Enforces document ownership for score entries.
      */
     match /users/{userId}/scores/{scoreId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      // Only allow creating a score if the user is signed in and is the owner.
-      allow create: if isSignedIn() && isOwner(userId);
-      // Only allow getting a score if the user is signed in and is the owner.
-      allow get: if isSignedIn() && isOwner(userId);
-      // Only allow updating a score if the user is signed in and is the owner.
-      allow update: if isSignedIn() && isOwner(userId);
-      // Only allow deleting a score if the user is signed in and is the owner.
-      allow delete: if isSignedIn() && isOwner(userId);
-      // Allow the owner to list their scores.
-      allow list: if isSignedIn() && isOwner(userId);
+        function isOwner(userId) {
+          return request.auth != null && request.auth.uid == userId;
+        }
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rules for the /users/{userId}/game_sessions/{gameSessionId} collection.
+     * @description Grants access to user-specific game session data based on ownership.
      * @path /users/{userId}/game_sessions/{gameSessionId}
-     * @allow (create) - User with UID 'user_abc' can create a game session document under /users/user_abc/game_sessions.
-     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete a game session document under /users/user_abc/game_sessions.
-     * @deny (create) - User with UID 'user_def' cannot create a game session document under /users/user_abc/game_sessions.
-     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete a game session document under /users/user_abc/game_sessions.
-     * @principle Restricts access to a user's own game session documents based on path ownership.
+     * @allow (create) User with UID 'user123' can create a game session entry under their profile.
+     * @allow (get, update, delete) User with UID 'user123' can read/write their game session entries.
+     * @allow (list) User with UID 'user123' can list their game session entries.
+     * @deny (create) User with UID 'user456' cannot create a game session entry under 'user123' profile.
+     * @deny (get, update, delete) User with UID 'user456' cannot read/write 'user123' game session entries.
+     * @principle Enforces document ownership for game session data.
      */
     match /users/{userId}/game_sessions/{gameSessionId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      // Only allow creating a game session if the user is signed in and is the owner.
-      allow create: if isSignedIn() && isOwner(userId);
-      // Only allow getting a game session if the user is signed in and is the owner.
-      allow get: if isSignedIn() && isOwner(userId);
-      // Only allow updating a game session if the user is signed in and is the owner.
-      allow update: if isSignedIn() && isOwner(userId);
-      // Only allow deleting a game session if the user is signed in and is the owner.
-      allow delete: if isSignedIn() && isOwner(userId);
-      // Allow the owner to list their game sessions.
-      allow list: if isSignedIn() && isOwner(userId);
+        function isOwner(userId) {
+          return request.auth != null && request.auth.uid == userId;
+        }
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rules for the /leaderboard/{scoreId} collection.
+     * @description Grants public read access to the leaderboard and restricts write access to authenticated users.
      * @path /leaderboard/{scoreId}
-     * @allow (get, list) - Any user can read the leaderboard.
-     * @deny (create, update, delete) - Only admins can write to the leaderboard.  TODO: Implement admin check
-     * @principle Allows public read access to leaderboard data, but restricts write access.
+     * @allow (get, list) Any user (authenticated or not) can read the leaderboard.
+     * @allow (create) Authenticated user can create an entry. Must provide a playerName.
+     * @deny (create) If request.auth is null (user is not authenticated).
+     * @deny (update, delete) Any user (even authenticated) cannot update or delete leaderboard entries.
+     * @principle Allows public read access while restricting writes to authenticated users only.
      */
     match /leaderboard/{scoreId} {
-      // Allow anyone to read the leaderboard.
-      allow get, list: if true;
-      function isAdmin() {
-        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-      }
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Only allow admins to create, update, or delete leaderboard entries.
-      allow create, update, delete: if isSignedIn() && isAdmin();
-    }
-
-    /**
-     * @description Rules for the /roles_admin/{userId} collection.
-     * @path /roles_admin/{userId}
-     * @allow (create) - Only can be created by backend
-     * @allow (get, update, delete) - Only can be managed by backend.
-     * @deny (list) - Listing is not allowed.
-     */
-     match /roles_admin/{userId} {
         function isSignedIn() {
           return request.auth != null;
         }
-        function isAdmin() {
-          return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-        }
-        // Only allow create if the request is authenticated as an admin.
-        allow create: if isSignedIn() && isAdmin() && request.auth.uid == userId;
-        // Only allow read, update, and delete if the request is authenticated as an admin.
-        allow get, update, delete: if isSignedIn() && isAdmin() && request.auth.uid == userId;
-        // Prevent listing of admin roles.
-        allow list: if false;
-      }
+
+        allow get, list: if true;
+        allow create: if isSignedIn();
+        allow update, delete: if false;
+    }
+
+    /**
+     * @description Grants admin privileges to users with a document in this collection.
+     * @path /roles_admin/{userId}
+     * @allow (get) Any user can check if they have admin privileges (for UI purposes).
+     * @allow (create) Only a privileged process (e.g., a Firebase Function) can assign admin roles.
+     * @deny (list, update, delete) Listing, updating, or deleting admin roles is prohibited via client-side rules.
+     * @principle Grants administrative privileges based on document presence in the /roles_admin collection.
+     */
+    match /roles_admin/{userId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }

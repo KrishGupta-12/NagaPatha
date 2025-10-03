@@ -183,7 +183,7 @@
           "schema": {
             "$ref": "#/backend/entities/Score"
           },
-          "description": "Stores the top scores globally for leaderboard display.",
+          "description": "Stores the top scores globally for leaderboard display. Any authenticated user can create a score.",
           "params": [
             {
               "name": "scoreId",
