@@ -209,7 +209,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         
         {!isGameRunning && !isGameOver && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-            <h2 className="text-4xl font-headline text-accent">RetroSnake</h2>
+            <h2 className="text-4xl font-headline text-accent">NāgaPatha</h2>
             <Button onClick={startGame} className="mt-4 animate-bounce" size="lg">
               Start Game
             </Button>

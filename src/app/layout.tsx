@@ -3,12 +3,11 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { GameProvider } from '@/components/providers/game-provider';
-import { FirebaseProvider } from '@/firebase/provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'RetroSnake',
+  title: 'NāgaPatha',
   description: 'A classic Snake game with modern polish and Firebase integration.',
 };
 
@@ -28,15 +27,14 @@ export default function RootLayout({
         />
       </head>
       <body className={cn('font-body antialiased min-h-screen bg-background text-foreground')}>
-        <FirebaseProvider>
+        <FirebaseClientProvider>
           <AuthProvider>
             <GameProvider>
               {children}
               <Toaster />
-              <FirebaseErrorListener />
             </GameProvider>
           </AuthProvider>
-        </FirebaseProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

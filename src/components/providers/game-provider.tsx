@@ -39,7 +39,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!userPrefix) return;
 
-    const savedState = localStorage.getItem(`retrosnake_gamestate_${userPrefix}`);
+    const savedState = localStorage.getItem(`nagapatha_gamestate_${userPrefix}`);
     if (savedState) {
       const {
         difficulty: savedDifficulty,
@@ -69,7 +69,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         sessionDurations,
         soundEnabled,
     };
-    localStorage.setItem(`retrosnake_gamestate_${userPrefix}`, JSON.stringify(gameState));
+    localStorage.setItem(`nagapatha_gamestate_${userPrefix}`, JSON.stringify(gameState));
   }, [difficulty, highScore, gamesPlayed, sessionDurations, soundEnabled, userPrefix]);
   
   const playGameSound = useCallback((sound: 'eat' | 'crash' | 'click') => {

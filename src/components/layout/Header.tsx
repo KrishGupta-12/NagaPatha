@@ -35,7 +35,7 @@ export function Header() {
       <div className="flex items-center gap-2">
         <Gamepad2 className="w-8 h-8 text-primary" />
         <h1 className="text-2xl font-bold font-headline text-primary">
-          RetroSnake
+          NāgaPatha
         </h1>
       </div>
       <div className="flex items-center gap-2">

@@ -18,7 +18,7 @@ export default function Home() {
         {loading ? (
           <div className="flex flex-col items-center gap-4">
             <Gamepad2 className="w-16 h-16 animate-pulse text-primary" />
-            <p className="text-xl text-muted-foreground font-headline">Loading RetroSnake...</p>
+            <p className="text-xl text-muted-foreground font-headline">Loading NāgaPatha...</p>
           </div>
         ) : showGame ? (
           <Game />

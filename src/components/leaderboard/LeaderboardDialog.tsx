@@ -60,7 +60,7 @@ export function LeaderboardDialog({ trigger }: LeaderboardDialogProps) {
             <Award /> Global Top 10
           </DialogTitle>
           <DialogDescription>
-            See who is the best RetroSnake player in the world!
+            See who is the best NāgaPatha player in the world!
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[60vh] overflow-y-auto">

@@ -34,7 +34,7 @@ export function Auth() {
   return (
     <Card className="w-full max-w-sm shadow-lg border-primary/50">
       <CardHeader className="text-center">
-        <CardTitle className="font-headline text-3xl text-primary">Welcome to RetroSnake</CardTitle>
+        <CardTitle className="font-headline text-3xl text-primary">Welcome to NāgaPatha</CardTitle>
         <CardDescription className="pt-2">Sign in to save your high scores to the global leaderboard or play as a guest.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
