@@ -14,6 +14,9 @@ export const useSwipeControls = (onSwipe: (direction: Direction) => void) => {
 
     const onTouchMove = (e: React.TouchEvent) => {
         if (!touchStart) return;
+        
+        // Prevent the browser's default behavior, like pull-to-refresh
+        e.preventDefault();
 
         const currentX = e.targetTouches[0].clientX;
         const currentY = e.targetTouches[0].clientY;
@@ -35,3 +38,5 @@ export const useSwipeControls = (onSwipe: (direction: Direction) => void) => {
 
     return { onTouchStart, onTouchMove };
 };
+
+    

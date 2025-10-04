@@ -284,7 +284,6 @@ export function GameBoard({ onRestart }: GameBoardProps) {
       case 'striped':
         return cn(baseClass, isHead ? 'bg-primary' : (index % 2 === 0 ? 'bg-primary/80' : 'bg-green-300'), 'rounded-sm');
       case 'gradient':
-        const opacity = 1 - (index / (snake.length + 5));
         return cn(baseClass, 'rounded-sm', isHead && 'rounded-sm');
       case 'digital':
         return cn(baseClass, isHead ? 'bg-lime-400' : 'bg-lime-600', 'border-[1px] border-lime-800');
@@ -344,7 +343,8 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         ref={gameBoardRef}
         className={cn(
           "relative rounded-md border-2 shadow-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring",
-           getBoardThemeClasses()
+           getBoardThemeClasses(),
+           isPowerUpActive && 'animate-pulse-food'
         )}
         style={{
           width: 'min(90vw, 80vh, 600px)',
@@ -441,3 +441,5 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     </div>
   );
 }
+
+    
