@@ -9,14 +9,14 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-export const AdjustDifficultyInputSchema = z.object({
+const AdjustDifficultyInputSchema = z.object({
   currentDifficulty: z.number().min(1).max(3).describe("The current difficulty level (1=Easy, 2=Medium, 3=Hard)."),
   lastScore: z.number().describe("The player's score in the last game."),
   averageSessionLength: z.number().describe("The average length of the player's game sessions in seconds."),
   gamesPlayed: z.number().describe("The total number of games the player has played."),
 });
 
-export const AdjustDifficultyOutputSchema = z.object({
+const AdjustDifficultyOutputSchema = z.object({
   recommendation: z.enum(['increase', 'decrease', 'stay']).describe("The recommendation to increase, decrease, or keep the difficulty level."),
   newDifficulty: z.number().min(1).max(3).describe("The suggested new difficulty level."),
   reasoning: z.string().describe("A brief explanation for the recommendation, to be shown to the player."),
