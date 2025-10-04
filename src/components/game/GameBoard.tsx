@@ -72,10 +72,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'START_GAME':
       return {
-        ...state,
+        ...createInitialState(),
         isGameRunning: true,
-        isGameOver: false,
-        isPaused: false,
         startTime: Date.now(),
       };
     case 'PAUSE_GAME':
@@ -92,7 +90,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         (dir1 === 'DOWN' && dir2 === 'UP') ||
         (dir1 === 'LEFT' && dir2 === 'RIGHT') ||
         (dir1 === 'RIGHT' && dir2 === 'LEFT');
-      if (!isOpposite(state.direction, action.payload)) {
+      if (state.isGameRunning && !isOpposite(state.direction, action.payload)) {
         return { ...state, direction: action.payload };
       }
       return state;
@@ -128,7 +126,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         const newScore = state.score + 1;
         const newFood = generateFood(state.snake);
         let newPowerUp = state.powerUp;
-        if (newScore % 5 === 0 && !state.powerUp) {
+        if (newScore % 5 === 0 && !state.powerUp && !state.isPowerUpActive) {
             newPowerUp = generateFood([...state.snake, newFood]);
         }
         return {
@@ -164,8 +162,10 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   const gameBoardRef = useRef<HTMLDivElement>(null);
 
   const handleDirectionChange = useCallback((newDirection: Direction) => {
-    dispatch({ type: 'CHANGE_DIRECTION', payload: newDirection });
-  }, []);
+    if (isGameRunning) {
+        dispatch({ type: 'CHANGE_DIRECTION', payload: newDirection });
+    }
+  }, [isGameRunning]);
 
   const swipeHandlers = useSwipeControls(handleDirectionChange);
 
@@ -177,9 +177,9 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   }, [incrementGamesPlayed]);
 
   const resetGame = useCallback(() => {
-    onRestart();
     dispatch({ type: 'RESET_GAME' });
     if(powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
+    onRestart();
   }, [onRestart]);
 
   const endGame = useCallback(() => {
@@ -189,7 +189,10 @@ export function GameBoard({ onRestart }: GameBoardProps) {
       }
       dispatch({ type: 'END_GAME' });
       playGameSound('crash');
-      if (powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
+      if (powerUpTimerRef.current) {
+        clearTimeout(powerUpTimerRef.current);
+        dispatch({ type: 'DEACTIVATE_POWERUP' });
+      };
     }
   }, [isGameRunning, startTime, addSessionDuration, playGameSound]);
 
@@ -200,9 +203,14 @@ export function GameBoard({ onRestart }: GameBoardProps) {
 
   useInterval(moveSnake, isGameRunning ? DIFFICULTY_LEVELS[difficulty] : null);
 
+  const resumeGame = useCallback(() => {
+    dispatch({ type: 'RESUME_GAME' });
+    gameBoardRef.current?.focus();
+  }, []);
+
   // Effect for game logic (collisions, eating food)
   useEffect(() => {
-    if (!isGameRunning && !isPaused) return;
+    if (!isGameRunning) return;
 
     const head = snake[0];
 
@@ -231,7 +239,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         endGame();
       }
     }
-  }, [snake, food, powerUp, isGameRunning, isPaused, isPowerUpActive, score, setHighScore, playGameSound, endGame]);
+  }, [snake, food, powerUp, isGameRunning, isPowerUpActive, score, setHighScore, playGameSound, endGame]);
 
   // Keyboard controls
   useEffect(() => {
@@ -248,7 +256,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         case 'p':
         case 'P':
             if(isGameRunning) dispatch({type: 'PAUSE_GAME'});
-            else if (isPaused) dispatch({type: 'RESUME_GAME'});
+            else if (isPaused) resumeGame();
             break;
       }
     };
@@ -256,7 +264,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     const board = gameBoardRef.current;
     board?.addEventListener('keydown', handleKeyDown);
     return () => board?.removeEventListener('keydown', handleKeyDown);
-  }, [isGameRunning, isGameOver, isPaused, handleDirectionChange, startGame]);
+  }, [isGameRunning, isGameOver, isPaused, handleDirectionChange, startGame, resumeGame]);
   
   const difficultyName = {1: 'Easy', 2: 'Medium', 3: 'Hard'}[difficulty];
   
@@ -264,7 +272,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     if(isGameRunning) {
         dispatch({type: 'PAUSE_GAME'});
     } else if (isPaused) {
-        dispatch({type: 'RESUME_GAME'});
+        resumeGame();
     }
   }
 
@@ -278,7 +286,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
 
       <div
         ref={gameBoardRef}
-        className="relative bg-card rounded-md border-2 border-primary shadow-lg overflow-hidden"
+        className="relative bg-card rounded-md border-2 border-primary shadow-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring"
         style={{
           width: 'min(90vw, 80vh, 600px)',
           height: 'min(90vw, 80vh, 600px)',
@@ -346,7 +354,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         {isPaused && (
            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
              <h2 className="text-4xl font-headline text-accent">Paused</h2>
-             <Button onClick={() => dispatch({type: 'RESUME_GAME'})} className="mt-4" size="lg">
+             <Button onClick={resumeGame} className="mt-4" size="lg">
                 <Play className="mr-2"/>
                 Resume
              </Button>
@@ -356,7 +364,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
         {isGameOver && <GameOverScreen score={score} onPlayAgain={resetGame} />}
       </div>
       
-      <div className="flex w-full max-w-md lg:max-w-lg justify-between items-center">
+      <div className="flex w-full max-w-md lg:max-w-lg justify-between items-center h-10">
         {(isGameRunning || isPaused) && !isGameOver ? (
             <Button onClick={handlePauseResumeClick} variant="outline" size="sm" className='w-28'>
             {isPaused ? <Play className="mr-2" /> : <Pause className="mr-2" />}
