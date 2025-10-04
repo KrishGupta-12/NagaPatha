@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useCallback, useReducer, useRef } from 'react';
@@ -16,6 +15,8 @@ import { startAudioContext } from '@/lib/utils';
 import { GameOverScreen } from './GameOverScreen';
 import { Button } from '@/components/ui/button';
 import { Pause, Play } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
 
 // --- Game State and Actions ---
 interface GameState {
@@ -157,7 +158,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   
   const powerUpTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { difficulty, highScore, setHighScore, incrementGamesPlayed, addSessionDuration, playGameSound } = useGame();
+  const { difficulty, highScore, setHighScore, incrementGamesPlayed, addSessionDuration, playGameSound, snakeStyle, foodStyle } = useGame();
   
   const gameBoardRef = useRef<HTMLDivElement>(null);
 
@@ -276,6 +277,34 @@ export function GameBoard({ onRestart }: GameBoardProps) {
     }
   }
 
+  const getSnakeSegmentClass = (index: number) => {
+    const isHead = index === 0;
+    switch (snakeStyle) {
+      case 'striped':
+        return cn(
+          isHead ? 'bg-primary' : (index % 2 === 0 ? 'bg-primary/80' : 'bg-green-300'),
+          'rounded-[2px]'
+        );
+      case 'classic':
+      default:
+        return cn(
+          isHead ? 'bg-primary' : 'bg-primary/80',
+          'rounded-[2px]'
+        );
+    }
+  };
+
+  const getFoodClass = () => {
+    switch(foodStyle) {
+      case 'gold':
+        return "bg-yellow-400 rounded-full animate-pulse-food shadow-[0_0_8px_yellow]";
+      case 'apple':
+      default:
+        return "bg-accent rounded-full animate-pulse-food";
+
+    }
+  }
+
   return (
     <div className="flex flex-col items-center gap-4 w-full">
       <div className="flex justify-between items-center w-full max-w-md lg:max-w-lg px-2 text-lg font-headline">
@@ -310,7 +339,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
           {snake.map((segment, index) => (
             <div
               key={index}
-              className={` ${index === 0 ? 'bg-primary' : 'bg-primary/80'} rounded-[2px]`}
+              className={getSnakeSegmentClass(index)}
               style={{
                 gridColumnStart: segment.x + 1,
                 gridRowStart: segment.y + 1,
@@ -321,7 +350,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
             />
           ))}
           <div
-            className="bg-accent rounded-full animate-pulse-food"
+            className={getFoodClass()}
             style={{
               gridColumnStart: food.x + 1,
               gridRowStart: food.y + 1,
@@ -330,11 +359,11 @@ export function GameBoard({ onRestart }: GameBoardProps) {
           />
           {powerUp && (
              <div
-                className="bg-yellow-400 rounded-full animate-ping"
+                className="bg-blue-400 rounded-full animate-ping"
                 style={{
                 gridColumnStart: powerUp.x + 1,
                 gridRowStart: powerUp.y + 1,
-                boxShadow: '0 0 10px yellow'
+                boxShadow: '0 0 10px blue'
                 }}
                 aria-label={`Power-up at ${powerUp.x}, ${powerUp.y}`}
             />
@@ -376,5 +405,4 @@ export function GameBoard({ onRestart }: GameBoardProps) {
 
     </div>
   );
-
     

@@ -4,6 +4,7 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { playSound } from '@/lib/utils';
+import type { SnakeStyle, FoodStyle } from '@/lib/types';
 
 interface GameContextType {
   difficulty: number;
@@ -20,6 +21,10 @@ interface GameContextType {
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
   playGameSound: (sound: 'eat' | 'crash' | 'click') => void;
+  snakeStyle: SnakeStyle;
+  setSnakeStyle: (style: SnakeStyle) => void;
+  foodStyle: FoodStyle;
+  setFoodStyle: (style: FoodStyle) => void;
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -33,6 +38,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [gamesPlayed, setGamesPlayed] = useState(0);
   const [sessionDurations, setSessionDurations] = useState<number[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [snakeStyle, setSnakeStyle] = useState<SnakeStyle>('classic');
+  const [foodStyle, setFoodStyle] = useState<FoodStyle>('apple');
+
 
   const userPrefix = user?.uid || (isGuest ? 'guest' : '');
 
@@ -47,6 +55,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         gamesPlayed: savedGamesPlayed,
         sessionDurations: savedSessionDurations,
         soundEnabled: savedSoundEnabled,
+        snakeStyle: savedSnakeStyle,
+        foodStyle: savedFoodStyle,
       } = JSON.parse(savedState);
       
       setDifficulty(savedDifficulty || 1);
@@ -54,6 +64,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setGamesPlayed(savedGamesPlayed || 0);
       setSessionDurations(savedSessionDurations || []);
       setSoundEnabled(savedSoundEnabled === undefined ? true : savedSoundEnabled);
+      setSnakeStyle(savedSnakeStyle || 'classic');
+      setFoodStyle(savedFoodStyle || 'apple');
     } else {
         resetGameStats();
     }
@@ -68,9 +80,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         gamesPlayed,
         sessionDurations,
         soundEnabled,
+        snakeStyle,
+        foodStyle,
     };
     localStorage.setItem(`nagapatha_gamestate_${userPrefix}`, JSON.stringify(gameState));
-  }, [difficulty, highScore, gamesPlayed, sessionDurations, soundEnabled, userPrefix]);
+  }, [difficulty, highScore, gamesPlayed, sessionDurations, soundEnabled, snakeStyle, foodStyle, userPrefix]);
   
   const playGameSound = useCallback((sound: 'eat' | 'crash' | 'click') => {
     if (soundEnabled) {
@@ -103,6 +117,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setHighScore(0);
     setGamesPlayed(0);
     setSessionDurations([]);
+    setSnakeStyle('classic');
+    setFoodStyle('apple');
   }
 
   const value = {
@@ -120,6 +136,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     soundEnabled,
     setSoundEnabled,
     playGameSound,
+    snakeStyle,
+    setSnakeStyle,
+    foodStyle,
+    setFoodStyle,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

@@ -25,8 +25,10 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { useGame } from '@/hooks/use-game';
-import { Settings, RefreshCcw } from 'lucide-react';
+import { Settings, RefreshCcw, Apple, Coins, Gem, Palette } from 'lucide-react';
 import { useState } from 'react';
+import type { SnakeStyle, FoodStyle } from '@/lib/types';
+import { Separator } from '../ui/separator';
 
 export function SettingsDialog() {
   const {
@@ -36,6 +38,10 @@ export function SettingsDialog() {
     setSoundEnabled,
     resetGameStats,
     playGameSound,
+    snakeStyle,
+    setSnakeStyle,
+    foodStyle,
+    setFoodStyle,
   } = useGame();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -43,6 +49,16 @@ export function SettingsDialog() {
     playGameSound('click');
     setDifficulty(parseInt(value, 10));
   };
+  
+  const handleSnakeStyleChange = (value: SnakeStyle) => {
+    playGameSound('click');
+    setSnakeStyle(value);
+  }
+  
+  const handleFoodStyleChange = (value: FoodStyle) => {
+    playGameSound('click');
+    setFoodStyle(value);
+  }
 
   const handleSoundToggle = (checked: boolean) => {
     if (checked) {
@@ -93,6 +109,47 @@ export function SettingsDialog() {
               </div>
             </RadioGroup>
           </div>
+          
+          <Separator />
+          
+           <div className="space-y-3">
+            <Label className="font-headline text-lg">Snake Style</Label>
+            <RadioGroup
+              value={snakeStyle}
+              onValueChange={handleSnakeStyleChange}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="classic" id="classic" />
+                <Label htmlFor="classic" className="cursor-pointer flex items-center gap-1"><Palette size={16}/>Classic</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="striped" id="striped" />
+                <Label htmlFor="striped" className="cursor-pointer flex items-center gap-1"><Palette size={16}/>Striped</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
+           <div className="space-y-3">
+            <Label className="font-headline text-lg">Food Style</Label>
+            <RadioGroup
+              value={foodStyle}
+              onValueChange={handleFoodStyleChange}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="apple" id="apple" />
+                <Label htmlFor="apple" className="cursor-pointer flex items-center gap-1"><Apple size={16} className="text-red-500" /> Apple</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="gold" id="gold" />
+                <Label htmlFor="gold" className="cursor-pointer flex items-center gap-1"><Coins size={16} className="text-yellow-500"/> Gold</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
+          <Separator />
+
           <div className="flex items-center justify-between">
             <Label htmlFor="sound-switch" className="font-headline text-lg">Sound Effects</Label>
             <Switch

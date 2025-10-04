@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
@@ -32,3 +31,6 @@ export const SignInSchema = z.object({
 });
 
 export type SignInData = z.infer<typeof SignInSchema>;
+
+export type SnakeStyle = 'classic' | 'striped';
+export type FoodStyle = 'apple' | 'gold';
