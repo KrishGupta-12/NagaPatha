@@ -179,8 +179,6 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   }, [incrementGamesPlayed]);
 
   const resetGame = useCallback(() => {
-    dispatch({ type: 'RESET_GAME' });
-    if(powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
     onRestart();
   }, [onRestart]);
 
@@ -208,6 +206,15 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   const resumeGame = useCallback(() => {
     dispatch({ type: 'RESUME_GAME' });
     gameBoardRef.current?.focus();
+  }, []);
+
+  // Cleanup effect for powerup timer
+  useEffect(() => {
+    return () => {
+        if (powerUpTimerRef.current) {
+            clearTimeout(powerUpTimerRef.current);
+        }
+    };
   }, []);
 
   // Effect for game logic (collisions, eating food)
@@ -426,7 +433,10 @@ export function GameBoard({ onRestart }: GameBoardProps) {
            </div>
         )}
 
-        {isGameOver && <GameOverScreen score={score} onPlayAgain={resetGame} />}
+        {isGameOver && <GameOverScreen score={score} onPlayAgain={() => {
+            dispatch({ type: 'RESET_GAME' });
+            resetGame();
+        }} />}
       </div>
       
       <div className="flex w-full max-w-md lg:max-w-lg justify-between items-center h-10">

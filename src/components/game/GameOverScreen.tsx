@@ -9,7 +9,6 @@ import { useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useGame } from '@/hooks/use-game';
 
 interface GameOverScreenProps {
   score: number;
@@ -25,7 +24,8 @@ export function GameOverScreen({ score, onPlayAgain }: GameOverScreenProps) {
   useEffect(() => {
     async function handlePostGame() {
       if (user && firestore && score > 0 && !scoreSubmittedRef.current) {
-        scoreSubmittedRef.current = true; // Mark as submitted immediately
+        // Mark as submitted immediately to prevent re-entry
+        scoreSubmittedRef.current = true; 
         setIsSaving(true);
         
         const leaderboardRef = collection(firestore, 'leaderboard');
@@ -38,6 +38,8 @@ export function GameOverScreen({ score, onPlayAgain }: GameOverScreenProps) {
         try {
           await addDoc(leaderboardRef, leaderboardData);
         } catch (serverError) {
+          // Re-enable submission on error if you want to allow retries
+          // scoreSubmittedRef.current = false; 
           const permissionError = new FirestorePermissionError({
             path: leaderboardRef.path,
             operation: 'create',
@@ -74,3 +76,5 @@ export function GameOverScreen({ score, onPlayAgain }: GameOverScreenProps) {
     </div>
   );
 }
+
+    
