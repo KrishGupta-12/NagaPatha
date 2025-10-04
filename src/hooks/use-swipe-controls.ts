@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,23 +6,26 @@ import type { Direction } from '@/lib/types';
 
 export const useSwipeControls = (onSwipe: (direction: Direction) => void) => {
     const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+    const [lastSwipe, setLastSwipe] = useState<{ x: number; y: number } | null>(null);
 
-    const minSwipeDistance = 30;
+    const minSwipeDistance = 20; // Reduced for more sensitivity
 
     const onTouchStart = (e: React.TouchEvent) => {
-        setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+        const touch = e.targetTouches[0];
+        setTouchStart({ x: touch.clientX, y: touch.clientY });
+        setLastSwipe({ x: touch.clientX, y: touch.clientY });
     };
 
     const onTouchMove = (e: React.TouchEvent) => {
-        if (!touchStart) return;
+        e.preventDefault(); // Prevent default browser actions like scrolling
         
-        // Prevent the browser's default behavior, like pull-to-refresh
-        e.preventDefault();
+        if (!touchStart || !lastSwipe) return;
 
         const currentX = e.targetTouches[0].clientX;
         const currentY = e.targetTouches[0].clientY;
-        const diffX = touchStart.x - currentX;
-        const diffY = touchStart.y - currentY;
+        
+        const diffX = lastSwipe.x - currentX;
+        const diffY = lastSwipe.y - currentY;
 
         if (Math.abs(diffX) < minSwipeDistance && Math.abs(diffY) < minSwipeDistance) {
             return;
@@ -33,10 +37,14 @@ export const useSwipeControls = (onSwipe: (direction: Direction) => void) => {
             onSwipe(diffY > 0 ? 'UP' : 'DOWN');
         }
         
-        setTouchStart(null); // Reset after a swipe is detected to prevent multiple swipes in one gesture
+        // Update the last swipe position to the current one
+        setLastSwipe({ x: currentX, y: currentY });
     };
 
-    return { onTouchStart, onTouchMove };
-};
+    const onTouchEnd = () => {
+        setTouchStart(null);
+        setLastSwipe(null);
+    }
 
-    
+    return { onTouchStart, onTouchMove, onTouchEnd };
+};
