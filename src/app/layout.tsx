@@ -26,7 +26,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=VT323&display=swap"
           rel="stylesheet"
         />
-        <meta name="theme-color" content="#3c8f3c" />
+        <meta name="theme-color" content="#223d2b" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={cn('font-body antialiased min-h-screen bg-background text-foreground')}>
         <FirebaseClientProvider>

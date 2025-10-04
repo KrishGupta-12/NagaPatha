@@ -4,7 +4,7 @@
   "description": "A classic Snake game with modern polish and Firebase integration.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#2a3a31",
+  "background_color": "#223d2b",
   "theme_color": "#3c8f3c",
   "icons": [
     {
