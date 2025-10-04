@@ -36,7 +36,7 @@ type GameAction =
   | { type: 'PAUSE_GAME' }
   | { type: 'RESUME_GAME' }
   | { type: 'END_GAME' }
-  | { type: 'RESET_GAME'; payload: { onRestart: () => void } }
+  | { type: 'RESET_GAME' }
   | { type: 'CHANGE_DIRECTION'; payload: Direction }
   | { type: 'MOVE_SNAKE' }
   | { type: 'EAT_FOOD' }
@@ -85,7 +85,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'END_GAME':
       return { ...state, isGameRunning: false, isGameOver: true };
     case 'RESET_GAME':
-      action.payload.onRestart();
       return createInitialState();
     case 'CHANGE_DIRECTION': {
       const isOpposite = (dir1: Direction, dir2: Direction) =>
@@ -178,7 +177,8 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   }, [incrementGamesPlayed]);
 
   const resetGame = useCallback(() => {
-    dispatch({ type: 'RESET_GAME', payload: { onRestart } });
+    onRestart();
+    dispatch({ type: 'RESET_GAME' });
     if(powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
   }, [onRestart]);
 
