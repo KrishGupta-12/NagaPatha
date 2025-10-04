@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { playSound } from '@/lib/utils';
@@ -36,6 +37,7 @@ export const GameContext = createContext<GameContextType | undefined>(undefined)
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const { user, isGuest } = useAuth();
   const isMobile = useIsMobile();
+  const settingsLoadedRef = useRef(false);
   
   const [difficulty, setDifficulty] = useState(1); // 1: easy, 2: medium, 3: hard
   const [highScore, setHighScore] = useState(0);
@@ -50,39 +52,46 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const userPrefix = user?.uid || (isGuest ? 'guest' : '');
 
+  // Effect to load state from localStorage ONCE per user session
   useEffect(() => {
-    if (!userPrefix) return;
-
-    const savedState = localStorage.getItem(`nagapatha_gamestate_${userPrefix}`);
-    if (savedState) {
-      const {
-        difficulty: savedDifficulty,
-        highScore: savedHighScore,
-        gamesPlayed: savedGamesPlayed,
-        sessionDurations: savedSessionDurations,
-        soundEnabled: savedSoundEnabled,
-        snakeStyle: savedSnakeStyle,
-        foodStyle: savedFoodStyle,
-        boardStyle: savedBoardStyle,
-        boardTheme: savedBoardTheme,
-      } = JSON.parse(savedState);
-      
-      setDifficulty(savedDifficulty || 1);
-      setHighScore(savedHighScore || 0);
-      setGamesPlayed(savedGamesPlayed || 0);
-      setSessionDurations(savedSessionDurations || []);
-      setSoundEnabled(savedSoundEnabled === undefined ? true : savedSoundEnabled);
-      setSnakeStyle(savedSnakeStyle || 'classic');
-      setFoodStyle(savedFoodStyle || 'apple-red');
-      setBoardStyle(savedBoardStyle || 'default');
-      setBoardTheme(savedBoardTheme || 'default');
-    } else {
-        resetGameStats();
+    if (!userPrefix) {
+      settingsLoadedRef.current = false;
+      return;
+    };
+    if (userPrefix && !settingsLoadedRef.current) {
+        const savedState = localStorage.getItem(`nagapatha_gamestate_${userPrefix}`);
+        if (savedState) {
+          const {
+            difficulty: savedDifficulty,
+            highScore: savedHighScore,
+            gamesPlayed: savedGamesPlayed,
+            sessionDurations: savedSessionDurations,
+            soundEnabled: savedSoundEnabled,
+            snakeStyle: savedSnakeStyle,
+            foodStyle: savedFoodStyle,
+            boardStyle: savedBoardStyle,
+            boardTheme: savedBoardTheme,
+          } = JSON.parse(savedState);
+          
+          setDifficulty(savedDifficulty || 1);
+          setHighScore(savedHighScore || 0);
+          setGamesPlayed(savedGamesPlayed || 0);
+          setSessionDurations(savedSessionDurations || []);
+          setSoundEnabled(savedSoundEnabled === undefined ? true : savedSoundEnabled);
+          setSnakeStyle(savedSnakeStyle || 'classic');
+          setFoodStyle(savedFoodStyle || 'apple-red');
+          setBoardStyle(savedBoardStyle || 'default');
+          setBoardTheme(savedBoardTheme || 'default');
+        } else {
+            resetGameStats();
+        }
+        settingsLoadedRef.current = true;
     }
   }, [userPrefix]);
   
+  // Effect to save state to localStorage whenever it changes
   useEffect(() => {
-    if (!userPrefix) return;
+    if (!userPrefix || !settingsLoadedRef.current) return;
     
     const gameState = {
         difficulty,
@@ -124,7 +133,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     ? sessionDurations.reduce((a, b) => a + b, 0) / sessionDurations.length
     : 0;
     
-  const resetGameStats = () => {
+  const resetGameStats = useCallback(() => {
     setDifficulty(1);
     setHighScore(0);
     setGamesPlayed(0);
@@ -133,7 +142,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setFoodStyle('apple-red');
     setBoardStyle('default');
     setBoardTheme('default');
-  }
+  }, []);
 
   const value = {
     difficulty,
