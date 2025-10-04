@@ -4,7 +4,7 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { playSound } from '@/lib/utils';
-import type { SnakeStyle, FoodStyle } from '@/lib/types';
+import type { SnakeStyle, FoodStyle, BoardStyle, BoardTheme } from '@/lib/types';
 
 interface GameContextType {
   difficulty: number;
@@ -25,6 +25,10 @@ interface GameContextType {
   setSnakeStyle: (style: SnakeStyle) => void;
   foodStyle: FoodStyle;
   setFoodStyle: (style: FoodStyle) => void;
+  boardStyle: BoardStyle;
+  setBoardStyle: (style: BoardStyle) => void;
+  boardTheme: BoardTheme;
+  setBoardTheme: (theme: BoardTheme) => void;
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -39,7 +43,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [sessionDurations, setSessionDurations] = useState<number[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [snakeStyle, setSnakeStyle] = useState<SnakeStyle>('classic');
-  const [foodStyle, setFoodStyle] = useState<FoodStyle>('apple');
+  const [foodStyle, setFoodStyle] = useState<FoodStyle>('apple-red');
+  const [boardStyle, setBoardStyle] = useState<BoardStyle>('default');
+  const [boardTheme, setBoardTheme] = useState<BoardTheme>('default');
 
 
   const userPrefix = user?.uid || (isGuest ? 'guest' : '');
@@ -57,6 +63,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         soundEnabled: savedSoundEnabled,
         snakeStyle: savedSnakeStyle,
         foodStyle: savedFoodStyle,
+        boardStyle: savedBoardStyle,
+        boardTheme: savedBoardTheme,
       } = JSON.parse(savedState);
       
       setDifficulty(savedDifficulty || 1);
@@ -65,7 +73,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSessionDurations(savedSessionDurations || []);
       setSoundEnabled(savedSoundEnabled === undefined ? true : savedSoundEnabled);
       setSnakeStyle(savedSnakeStyle || 'classic');
-      setFoodStyle(savedFoodStyle || 'apple');
+      setFoodStyle(savedFoodStyle || 'apple-red');
+      setBoardStyle(savedBoardStyle || 'default');
+      setBoardTheme(savedBoardTheme || 'default');
     } else {
         resetGameStats();
     }
@@ -82,9 +92,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         soundEnabled,
         snakeStyle,
         foodStyle,
+        boardStyle,
+        boardTheme,
     };
     localStorage.setItem(`nagapatha_gamestate_${userPrefix}`, JSON.stringify(gameState));
-  }, [difficulty, highScore, gamesPlayed, sessionDurations, soundEnabled, snakeStyle, foodStyle, userPrefix]);
+  }, [difficulty, highScore, gamesPlayed, sessionDurations, soundEnabled, snakeStyle, foodStyle, boardStyle, boardTheme, userPrefix]);
   
   const playGameSound = useCallback((sound: 'eat' | 'crash' | 'click') => {
     if (soundEnabled) {
@@ -118,7 +130,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setGamesPlayed(0);
     setSessionDurations([]);
     setSnakeStyle('classic');
-    setFoodStyle('apple');
+    setFoodStyle('apple-red');
+    setBoardStyle('default');
+    setBoardTheme('default');
   }
 
   const value = {
@@ -140,6 +154,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setSnakeStyle,
     foodStyle,
     setFoodStyle,
+    boardStyle,
+    setBoardStyle,
+    boardTheme,
+    setBoardTheme,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

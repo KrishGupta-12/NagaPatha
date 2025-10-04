@@ -158,7 +158,7 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   
   const powerUpTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { difficulty, highScore, setHighScore, incrementGamesPlayed, addSessionDuration, playGameSound, snakeStyle, foodStyle } = useGame();
+  const { difficulty, highScore, setHighScore, incrementGamesPlayed, addSessionDuration, playGameSound, snakeStyle, foodStyle, boardStyle, boardTheme } = useGame();
   
   const gameBoardRef = useRef<HTMLDivElement>(null);
 
@@ -279,33 +279,58 @@ export function GameBoard({ onRestart }: GameBoardProps) {
 
   const getSnakeSegmentClass = (index: number) => {
     const isHead = index === 0;
+    const baseClass = 'transition-colors duration-200';
     switch (snakeStyle) {
       case 'striped':
-        return cn(
-          isHead ? 'bg-primary' : (index % 2 === 0 ? 'bg-primary/80' : 'bg-green-300'),
-          'rounded-[2px]'
-        );
+        return cn(baseClass, isHead ? 'bg-primary' : (index % 2 === 0 ? 'bg-primary/80' : 'bg-green-300'), 'rounded-sm');
+      case 'gradient':
+        const opacity = 1 - (index / (snake.length + 5));
+        return cn(baseClass, 'rounded-sm', isHead && 'rounded-sm');
+      case 'digital':
+        return cn(baseClass, isHead ? 'bg-lime-400' : 'bg-lime-600', 'border-[1px] border-lime-800');
       case 'classic':
       default:
-        return cn(
-          isHead ? 'bg-primary' : 'bg-primary/80',
-          'rounded-[2px]'
-        );
+        return cn(baseClass, isHead ? 'bg-primary' : 'bg-primary/80', 'rounded-sm');
     }
   };
 
-  const getFoodClass = () => {
-    switch(foodStyle) {
-      case 'gold':
-        return "bg-yellow-400 rounded-full animate-pulse-food shadow-[0_0_8px_hsl(var(--accent))]";
-      case 'gem':
-        return "bg-purple-500 rotate-45 animate-pulse-food shadow-[0_0_10px_hsl(var(--accent))]";
-      case 'apple':
-      default:
-        return "bg-accent rounded-full animate-pulse-food";
+  const getSnakeSegmentStyle = (index: number): React.CSSProperties => {
+     if (snakeStyle === 'gradient') {
+        const opacity = 1 - (index / (snake.length + 5));
+        return { backgroundColor: `hsl(var(--primary) / ${opacity})` };
+     }
+     return {};
+  }
 
+  const getFoodClass = () => {
+    const baseClasses = "rounded-full animate-pulse-food";
+    switch(foodStyle) {
+      case 'apple-gold': return `${baseClasses} bg-yellow-400 shadow-[0_0_8px_#facc15]`;
+      case 'apple-blue': return `${baseClasses} bg-blue-500 shadow-[0_0_8px_#3b82f6]`;
+      case 'apple-green': return `${baseClasses} bg-lime-500 shadow-[0_0_8px_#84cc16]`;
+      case 'apple-pink': return `${baseClasses} bg-pink-500 shadow-[0_0_8px_#ec4899]`;
+      case 'gem': return `bg-purple-500 rotate-45 animate-pulse-food shadow-[0_0_10px_#a855f7]`;
+      case 'apple-red':
+      default: return `${baseClasses} bg-accent shadow-[0_0_8px_hsl(var(--accent))]`;
     }
   }
+
+  const getBoardThemeClasses = () => {
+    switch(boardTheme) {
+        case 'light': return 'bg-slate-200 border-slate-400';
+        case 'mono': return 'bg-white border-black';
+        case 'default':
+        default: return 'bg-card border-primary';
+    }
+  }
+   const getGridColor = () => {
+    switch (boardTheme) {
+      case 'light': return 'rgba(150, 150, 150, 0.2)';
+      case 'mono': return 'rgba(0, 0, 0, 0.1)';
+      default: return 'hsla(var(--primary) / 0.1)';
+    }
+  };
+
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
@@ -317,7 +342,10 @@ export function GameBoard({ onRestart }: GameBoardProps) {
 
       <div
         ref={gameBoardRef}
-        className="relative bg-card rounded-md border-2 border-primary shadow-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring"
+        className={cn(
+          "relative rounded-md border-2 shadow-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring",
+           getBoardThemeClasses()
+        )}
         style={{
           width: 'min(90vw, 80vh, 600px)',
           height: 'min(90vw, 80vh, 600px)',
@@ -335,7 +363,11 @@ export function GameBoard({ onRestart }: GameBoardProps) {
             width: '100%',
             height: '100%',
             backgroundColor: isPowerUpActive ? 'hsl(var(--primary)/0.1)' : 'transparent',
-            transition: 'background-color 0.5s ease'
+            transition: 'background-color 0.5s ease',
+            ...(boardStyle === 'grid' && {
+              backgroundImage: `linear-gradient(to right, ${getGridColor()} 1px, transparent 1px), linear-gradient(to bottom, ${getGridColor()} 1px, transparent 1px)`,
+              backgroundSize: `calc(100% / ${GRID_SIZE}) calc(100% / ${GRID_SIZE})`,
+            }),
           }}
         >
           {snake.map((segment, index) => (
@@ -346,7 +378,8 @@ export function GameBoard({ onRestart }: GameBoardProps) {
                 gridColumnStart: segment.x + 1,
                 gridRowStart: segment.y + 1,
                 boxShadow: index === 0 ? `0 0 8px hsl(var(--primary)), ${isPowerUpActive ? '0 0 12px hsl(var(--accent))' : ''}` : 'none',
-                transition: 'box-shadow 0.3s ease'
+                transition: 'box-shadow 0.3s ease, background-color 0.2s linear',
+                 ...getSnakeSegmentStyle(index),
               }}
               aria-label={`Snake segment at ${segment.x}, ${segment.y}`}
             />

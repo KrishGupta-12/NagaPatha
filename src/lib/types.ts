@@ -32,5 +32,7 @@ export const SignInSchema = z.object({
 
 export type SignInData = z.infer<typeof SignInSchema>;
 
-export type SnakeStyle = 'classic' | 'striped';
-export type FoodStyle = 'apple' | 'gold' | 'gem';
+export type SnakeStyle = 'classic' | 'striped' | 'gradient' | 'digital';
+export type FoodStyle = 'apple-red' | 'apple-gold' | 'apple-blue' | 'apple-green' | 'apple-pink' | 'gem';
+export type BoardStyle = 'default' | 'grid';
+export type BoardTheme = 'default' | 'light' | 'mono';
