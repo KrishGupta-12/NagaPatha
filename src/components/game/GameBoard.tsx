@@ -297,7 +297,9 @@ export function GameBoard({ onRestart }: GameBoardProps) {
   const getFoodClass = () => {
     switch(foodStyle) {
       case 'gold':
-        return "bg-yellow-400 rounded-full animate-pulse-food shadow-[0_0_8px_yellow]";
+        return "bg-yellow-400 rounded-full animate-pulse-food shadow-[0_0_8px_hsl(var(--accent))]";
+      case 'gem':
+        return "bg-purple-500 rotate-45 animate-pulse-food shadow-[0_0_10px_hsl(var(--accent))]";
       case 'apple':
       default:
         return "bg-accent rounded-full animate-pulse-food";
@@ -405,4 +407,4 @@ export function GameBoard({ onRestart }: GameBoardProps) {
 
     </div>
   );
-    
+}

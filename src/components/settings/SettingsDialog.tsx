@@ -145,6 +145,10 @@ export function SettingsDialog() {
                 <RadioGroupItem value="gold" id="gold" />
                 <Label htmlFor="gold" className="cursor-pointer flex items-center gap-1"><Coins size={16} className="text-yellow-500"/> Gold</Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="gem" id="gem" />
+                <Label htmlFor="gem" className="cursor-pointer flex items-center gap-1"><Gem size={16} className="text-purple-500"/> Gem</Label>
+              </div>
             </RadioGroup>
           </div>
           

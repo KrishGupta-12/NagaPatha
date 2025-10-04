@@ -33,4 +33,4 @@ export const SignInSchema = z.object({
 export type SignInData = z.infer<typeof SignInSchema>;
 
 export type SnakeStyle = 'classic' | 'striped';
-export type FoodStyle = 'apple' | 'gold';
+export type FoodStyle = 'apple' | 'gold' | 'gem';
